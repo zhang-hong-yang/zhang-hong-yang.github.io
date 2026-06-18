@@ -208,6 +208,59 @@ git push origin master   # 或 main，取决于你的默认分支
 https://<你的用户名>.github.io
 ```
 
+### 5. 查看 GitHub Actions 构建进度
+
+推送代码后，可以在 GitHub 网页上实时查看部署进度。
+
+#### 进入 Actions 页面
+
+打开你的仓库，点击顶部导航栏的 **Actions** 标签。
+
+#### 查看运行列表
+
+左侧选择 **Build and Deploy** workflow，右侧是按时间排列的运行记录：
+
+| 状态图标 | 含义 |
+|----------|------|
+| 黄色圆点 | 正在运行 |
+| 绿色勾 | 构建成功 |
+| 红色叉 | 构建失败 |
+
+#### 查看详细步骤
+
+点击某一次运行记录，可以看到两个 job：
+
+1. **build** — 拉取代码、安装依赖、构建站点
+2. **deploy** — 部署到 GitHub Pages
+
+点进 **build** job，左侧会列出每个 step 的执行情况，例如：
+
+- Checkout
+- Setup Pages
+- Setup Ruby
+- Build assets
+- Build site
+- Test site
+- Upload site artifact
+
+正在执行的 step 显示黄色进度，已完成的显示绿色勾。点击某个 step 可展开查看完整日志，排查报错时非常有用。
+
+#### 其他查看方式
+
+- **仓库首页**：最近 push 的 commit 旁边可能显示黄色或绿色状态图标，点击可跳转到对应运行记录
+- **Settings → Pages**：部署成功后，会显示站点地址和最近一次部署状态
+- **邮件通知**：若开启了 GitHub 通知，构建失败时可能收到邮件提醒
+
+#### Actions 页面为空？
+
+如果 **Actions** 标签页没有任何记录，常见原因：
+
+1. 还没有 push 过代码
+2. Pages 来源尚未改为 **GitHub Actions**
+3. workflow 文件不在 `.github/workflows/` 根目录下
+
+一般 push 后等待 **2～5 分钟**，看到 **build** 和 **deploy** 两个 job 都变绿，即表示部署完成，可以访问你的博客了。
+
 ---
 
 ## 第五步：用 Markdown 写文章
