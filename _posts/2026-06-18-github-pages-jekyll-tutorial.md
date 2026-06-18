@@ -1,7 +1,7 @@
 ---
 title: 从零搭建个人博客并部署到 GitHub Pages
 description: 使用 Jekyll 主题、Markdown 写作和 GitHub Actions 自动部署，完整走通从创建仓库到上线的流程。
-date: 2026-06-18 18:00:00 +0800
+date: 2026-06-18 08:00:00 +0800
 categories: [教程, 博客]
 tags: [Jekyll, GitHub Pages, Markdown, GitHub Actions, Chirpy]
 pin: true
@@ -281,16 +281,16 @@ _posts/2026-06-18-my-first-post.md
 
 ### 2. 文章结构
 
-每篇文章以 YAML front matter 开头，后跟 Markdown 正文：
+每篇文章以 YAML front matter 开头，后跟 Markdown 正文。示例：
 
-```markdown
+~~~markdown
 ---
 title: 我的第一篇文章
 description: 这是摘要，显示在首页列表中
 date: 2026-06-18 12:00:00 +0800
 categories: [技术]
 tags: [Jekyll, 博客]
-pin: false          # true 可置顶
+pin: false
 ---
 
 ## 标题
@@ -299,19 +299,17 @@ pin: false          # true 可置顶
 
 ### 代码块
 
-```python
-def hello():
-    print("Hello, Blog!")
-```
+    def hello():
+        print("Hello, Blog!")
 
 ### 图片
 
-```markdown
 ![图片描述](/path/to/image.png)
-```
+~~~
+
+> 提示：在文章里展示「包含代码块的 Markdown 示例」时，外层请用 `~~~` 包裹，避免内层 ` ``` ` 提前结束代码块，导致 Jekyll 构建失败。
 
 图片可放在仓库内，也可使用图床 URL。
-```
 
 ### 3. 发布文章
 
@@ -341,6 +339,28 @@ Chirpy 在 `_tabs/` 目录提供固定页面，例如：
 ---
 
 ## 常见问题排查
+
+### 文章 push 成功但首页看不到
+
+**原因 1：文章日期在未来**
+
+Jekyll 默认不发布 `date` 晚于构建时间的文章。若你写了 `2026-06-18 18:00:00 +0800`，而 Actions 在 18:00 之前构建，这篇文章会被跳过。
+
+**解决**：把 `date` 改为当前时间之前，例如当天早上：
+
+```yaml
+date: 2026-06-18 08:00:00 +0800
+```
+
+**原因 2：Markdown 写法有误**
+
+代码块嵌套也会导致 Jekyll 跳过该文件。例如在外层 ` ```markdown ` 里又写了 ` ```python `，或示例里包含 `---`，会破坏解析。
+
+**解决**：
+
+1. 打开 Actions → 某次运行的 **Build site** 日志，搜索 `Skipping` 或 `Error`
+2. 展示含代码块的 Markdown 示例时，外层改用 `~~~` 包裹
+3. 修复后重新 `git push`，等待 deploy 完成
 
 ### 首页显示 `--- layout: home ---` 原文
 
