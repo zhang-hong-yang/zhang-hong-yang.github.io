@@ -2,7 +2,7 @@
 title: 从零搭建个人博客并部署到 GitHub Pages
 description: 使用 Jekyll 主题、Markdown 写作和 GitHub Actions 自动部署，完整走通从创建仓库到上线的流程。
 date: 2026-06-18 08:00:00 +0800
-categories: [教程, 博客]
+categories: [教程, Jekyll]
 tags: [Jekyll, GitHub Pages, Markdown, GitHub Actions, Chirpy]
 pin: true
 ---

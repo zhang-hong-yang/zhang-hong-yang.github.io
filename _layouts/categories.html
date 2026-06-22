@@ -7,132 +7,142 @@ layout: page
 
 {% assign HEAD_PREFIX = 'h_' %}
 {% assign LIST_PREFIX = 'l_' %}
-
 {% assign group_index = 0 %}
 
-{% assign sort_categories = site.categories | sort %}
+{% assign path_parts = '' | split: '' %}
+{% assign depth = 0 %}
+{% assign top_children = '' | split: '' %}
 
-{% for category in sort_categories %}
-  {% assign category_name = category | first %}
-  {% assign posts_of_category = category | last %}
-  {% assign first_post = posts_of_category | first %}
+{% for post in site.posts %}
+  {% unless post.hidden %}
+    {% if post.categories.size > depth %}
+      {% assign child_name = post.categories[depth] %}
+      {% unless top_children contains child_name %}
+        {% assign top_children = top_children | push: child_name %}
+      {% endunless %}
+    {% endif %}
+  {% endunless %}
+{% endfor %}
 
-  {% if category_name == first_post.categories[0] %}
-    {% assign sub_categories = '' | split: '' %}
+{% assign top_children = top_children | sort %}
 
-    {% for post in posts_of_category %}
-      {% assign second_category = post.categories[1] %}
-      {% if second_category %}
-        {% unless sub_categories contains second_category %}
-          {% assign sub_categories = sub_categories | push: second_category %}
-        {% endunless %}
+{% for child in top_children %}
+  {% capture child_path %}{{ child }}{% endcapture %}
+  {% assign child_path_parts = child_path | split: '|' %}
+  {% assign child_depth = child_path_parts | size %}
+
+  {% assign sub_children = '' | split: '' %}
+  {% assign subtree_count = 0 %}
+
+  {% for post in site.posts %}
+    {% unless post.hidden %}
+      {% if post.categories.size >= child_depth %}
+        {% assign path_match = true %}
+        {% for part in child_path_parts %}
+          {% assign idx = forloop.index0 %}
+          {% if post.categories[idx] != part %}
+            {% assign path_match = false %}
+          {% endif %}
+        {% endfor %}
+
+        {% if path_match %}
+          {% assign subtree_count = subtree_count | plus: 1 %}
+
+          {% if post.categories.size > child_depth %}
+            {% assign sub_name = post.categories[child_depth] %}
+            {% unless sub_children contains sub_name %}
+              {% assign sub_children = sub_children | push: sub_name %}
+            {% endunless %}
+          {% endif %}
+        {% endif %}
       {% endif %}
-    {% endfor %}
+    {% endunless %}
+  {% endfor %}
 
-    {% assign sub_categories = sub_categories | sort %}
-    {% assign sub_categories_size = sub_categories | size %}
+  {% assign sub_children = sub_children | sort %}
+  {% assign sub_children_size = sub_children | size %}
 
-    <div class="card categories">
-      <!-- top-category -->
-      <div
-        id="{{ HEAD_PREFIX }}{{ group_index }}"
-        class="card-header d-flex justify-content-between hide-border-bottom"
-      >
-        <span class="ms-2">
-          <i class="far fa-folder{% if sub_categories_size > 0 %}-open{% endif %} fa-fw"></i>
+  {% assign direct_at_top = 0 %}
+  {% for post in site.posts %}
+    {% unless post.hidden %}
+      {% if post.categories.size == child_depth and post.categories[0] == child %}
+        {% assign direct_at_top = direct_at_top | plus: 1 %}
+      {% endif %}
+    {% endunless %}
+  {% endfor %}
 
-          {% capture _category_url %}/categories/{{ category_name | slugify | url_encode }}/{% endcapture %}
-          <a href="{{ _category_url | relative_url }}" class="mx-2">{{ category_name }}</a>
+  {% assign has_tree_content = false %}
+  {% if sub_children_size > 0 or direct_at_top > 0 %}
+    {% assign has_tree_content = true %}
+  {% endif %}
 
-          <!-- content count -->
-          {% assign top_posts_size = site.categories[category_name] | size %}
-          <span class="text-muted small font-weight-light">
-            {% if sub_categories_size > 0 %}
-              {{ sub_categories_size }}
-              {% if sub_categories_size > 1 %}
-                {{
-                  site.data.locales[lang].categories.category_measure.plural
-                  | default: site.data.locales[lang].categories.category_measure
-                }}
-              {% else %}
-                {{
-                  site.data.locales[lang].categories.category_measure.singular
-                  | default: site.data.locales[lang].categories.category_measure
-                }}
-              {% endif -%}
-              ,
-            {% endif %}
+  <div class="card categories">
+    <div
+      id="{{ HEAD_PREFIX }}{{ group_index }}"
+      class="card-header d-flex justify-content-between hide-border-bottom"
+    >
+      <span class="ms-2">
+        <i class="far fa-folder{% if has_tree_content %}-open{% endif %} fa-fw"></i>
 
-            {{ top_posts_size }}
+        {% capture _category_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
+        <a href="{{ _category_url | relative_url }}" class="mx-2">{{ child }}</a>
 
-            {% if top_posts_size > 1 %}
+        <span class="text-muted small font-weight-light">
+          {% if sub_children_size > 0 %}
+            {{ sub_children_size }}
+            {% if sub_children_size > 1 %}
               {{
-                site.data.locales[lang].categories.post_measure.plural
-                | default: site.data.locales[lang].categories.post_measure
+                site.data.locales[lang].categories.category_measure.plural
+                | default: site.data.locales[lang].categories.category_measure
               }}
             {% else %}
               {{
-                site.data.locales[lang].categories.post_measure.singular
-                | default: site.data.locales[lang].categories.post_measure
+                site.data.locales[lang].categories.category_measure.singular
+                | default: site.data.locales[lang].categories.category_measure
               }}
-            {% endif %}
-          </span>
+            {% endif -%}
+            ,
+          {% endif %}
+
+          {{ subtree_count }}
+
+          {% if subtree_count > 1 %}
+            {{
+              site.data.locales[lang].categories.post_measure.plural
+              | default: site.data.locales[lang].categories.post_measure
+            }}
+          {% else %}
+            {{
+              site.data.locales[lang].categories.post_measure.singular
+              | default: site.data.locales[lang].categories.post_measure
+            }}
+          {% endif %}
         </span>
+      </span>
 
-        <!-- arrow -->
-        {% if sub_categories_size > 0 %}
-          <a
-            href="#{{ LIST_PREFIX }}{{ group_index }}"
-            data-bs-toggle="collapse"
-            aria-expanded="true"
-            aria-label="{{ HEAD_PREFIX }}{{ group_index }}-trigger"
-            class="category-trigger hide-border-bottom"
-          >
-            <i class="fas fa-fw fa-angle-down"></i>
-          </a>
-        {% else %}
-          <span data-bs-toggle="collapse" class="category-trigger hide-border-bottom disabled">
-            <i class="fas fa-fw fa-angle-right"></i>
-          </span>
-        {% endif %}
-      </div>
-      <!-- .card-header -->
-
-      <!-- Sub-categories -->
-      {% if sub_categories_size > 0 %}
-        <div id="{{ LIST_PREFIX }}{{ group_index }}" class="collapse show" aria-expanded="true">
-          <ul class="list-group">
-            {% for sub_category in sub_categories %}
-              <li class="list-group-item">
-                <i class="far fa-folder fa-fw"></i>
-
-                {% capture _sub_ctg_url %}/categories/{{ sub_category | slugify | url_encode }}/{% endcapture %}
-                <a href="{{ _sub_ctg_url | relative_url }}" class="mx-2">{{ sub_category }}</a>
-
-                {% assign posts_size = site.categories[sub_category] | size %}
-                <span class="text-muted small font-weight-light">
-                  {{ posts_size }}
-
-                  {% if posts_size > 1 %}
-                    {{
-                      site.data.locales[lang].categories.post_measure.plural
-                      | default: site.data.locales[lang].categories.post_measure
-                    }}
-                  {% else %}
-                    {{
-                      site.data.locales[lang].categories.post_measure.singular
-                      | default: site.data.locales[lang].categories.post_measure
-                    }}
-                  {% endif %}
-                </span>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
+      {% if has_tree_content %}
+        <a
+          href="#{{ LIST_PREFIX }}{{ group_index }}"
+          data-bs-toggle="collapse"
+          aria-expanded="true"
+          aria-label="{{ HEAD_PREFIX }}{{ group_index }}-trigger"
+          class="category-trigger hide-border-bottom"
+        >
+          <i class="fas fa-fw fa-angle-down"></i>
+        </a>
+      {% else %}
+        <span data-bs-toggle="collapse" class="category-trigger hide-border-bottom disabled">
+          <i class="fas fa-fw fa-angle-right"></i>
+        </span>
       {% endif %}
     </div>
-    <!-- .card -->
 
-    {% assign group_index = group_index | plus: 1 %}
-  {% endif %}
+    {% if has_tree_content %}
+      <div id="{{ LIST_PREFIX }}{{ group_index }}" class="collapse show" aria-expanded="true">
+        {% include category-tree-node.html parent_path=child_path mode='categories' %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% assign group_index = group_index | plus: 1 %}
 {% endfor %}

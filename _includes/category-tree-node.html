@@ -1,0 +1,156 @@
+{%- comment -%}
+  Recursive category tree renderer.
+
+  @param {string} parent_path - Ancestor path joined by '|', empty at virtual root.
+  @param {string} mode - 'home' | 'categories'
+{%- endcomment -%}
+
+{% assign path_parts = '' | split: '' %}
+{% unless include.parent_path == '' or include.parent_path == nil %}
+  {% assign path_parts = include.parent_path | split: '|' %}
+{% endunless %}
+{% assign depth = path_parts | size %}
+
+{% assign child_names = '' | split: '' %}
+{% assign direct_posts = '' | split: '' %}
+
+{% for post in site.posts %}
+  {% unless post.hidden %}
+    {% if post.categories.size > depth %}
+      {% assign path_match = true %}
+      {% for part in path_parts %}
+        {% assign idx = forloop.index0 %}
+        {% if post.categories[idx] != part %}
+          {% assign path_match = false %}
+        {% endif %}
+      {% endfor %}
+
+      {% if path_match %}
+        {% assign child_name = post.categories[depth] %}
+        {% unless child_names contains child_name %}
+          {% assign child_names = child_names | push: child_name %}
+        {% endunless %}
+      {% endif %}
+    {% endif %}
+
+    {% if depth > 0 and post.categories.size == depth %}
+      {% assign path_match = true %}
+      {% for part in path_parts %}
+        {% assign idx = forloop.index0 %}
+        {% if post.categories[idx] != part %}
+          {% assign path_match = false %}
+        {% endif %}
+      {% endfor %}
+
+      {% if path_match %}
+        {% assign direct_posts = direct_posts | push: post %}
+      {% endif %}
+    {% endif %}
+  {% endunless %}
+{% endfor %}
+
+{% assign child_names = child_names | sort %}
+
+{% if include.mode == 'home' %}
+  {% if depth == 0 %}
+    {% for child in child_names %}
+      {% capture child_path %}{{ child }}{% endcapture %}
+
+      <section class="mb-4">
+        <h3 class="h5 mb-2">
+          <i class="far fa-folder-open fa-fw text-muted"></i>
+          {% capture _category_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
+          <a href="{{ _category_url | relative_url }}">{{ child }}</a>
+        </h3>
+
+        {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+      </section>
+    {% endfor %}
+  {% else %}
+    {% if child_names.size > 0 or direct_posts.size > 0 %}
+      <ul class="ps-3 mt-1 mb-0">
+        {% for child in child_names %}
+          {% capture child_path %}
+            {% if include.parent_path == '' %}{{ child }}{% else %}{{ include.parent_path }}|{{ child }}{% endif %}
+          {% endcapture %}
+
+          <li class="mb-2">
+            <i class="far fa-folder fa-fw text-muted"></i>
+            {% capture _child_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
+            <a href="{{ _child_url | relative_url }}">{{ child }}</a>
+            {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+          </li>
+        {% endfor %}
+
+        {% for post in direct_posts %}
+          <li>
+            <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+
+{% elsif include.mode == 'categories' %}
+  {% if child_names.size > 0 or direct_posts.size > 0 %}
+    <ul class="list-group{% if depth > 1 %} ms-3 border-0{% endif %}">
+      {% for child in child_names %}
+        {% capture child_path %}
+          {% if include.parent_path == '' %}{{ child }}{% else %}{{ include.parent_path }}|{{ child }}{% endif %}
+        {% endcapture %}
+
+        <li class="list-group-item">
+          <i class="far fa-folder fa-fw"></i>
+          {% capture _child_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
+          <a href="{{ _child_url | relative_url }}" class="mx-2">{{ child }}</a>
+
+          {% assign subtree_count = 0 %}
+          {% assign child_path_parts = child_path | split: '|' %}
+          {% assign child_depth = child_path_parts | size %}
+
+          {% for post in site.posts %}
+            {% unless post.hidden %}
+              {% if post.categories.size >= child_depth %}
+                {% assign path_match = true %}
+                {% for part in child_path_parts %}
+                  {% assign idx = forloop.index0 %}
+                  {% if post.categories[idx] != part %}
+                    {% assign path_match = false %}
+                  {% endif %}
+                {% endfor %}
+
+                {% if path_match %}
+                  {% assign subtree_count = subtree_count | plus: 1 %}
+                {% endif %}
+              {% endif %}
+            {% endunless %}
+          {% endfor %}
+
+          <span class="text-muted small font-weight-light">
+            {{ subtree_count }}
+            {% if subtree_count > 1 %}
+              {{
+                site.data.locales[lang].categories.post_measure.plural
+                | default: site.data.locales[lang].categories.post_measure
+              }}
+            {% else %}
+              {{
+                site.data.locales[lang].categories.post_measure.singular
+                | default: site.data.locales[lang].categories.post_measure
+              }}
+            {% endif %}
+          </span>
+
+          {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+        </li>
+      {% endfor %}
+
+      {% for post in direct_posts %}
+        <li class="list-group-item">
+          <i class="far fa-file fa-fw text-muted"></i>
+          <a href="{{ post.url | relative_url }}" class="mx-2">{{ post.title }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endif %}
