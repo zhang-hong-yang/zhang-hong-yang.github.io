@@ -1,5 +1,7 @@
 <!-- The Side Bar -->
 
+{% assign visible_posts = site.posts | where_exp: 'post', 'post.hidden != true' %}
+
 <aside aria-label="Sidebar" id="sidebar" class="d-flex flex-column align-items-end">
   <header class="profile-wrapper">
     <a href="{{ '/' | relative_url }}" id="avatar" class="rounded-circle">
@@ -11,12 +13,19 @@
       {%- endif -%}
     </a>
 
+    <p class="site-kicker mb-2">TECH INDEX</p>
     <a class="site-title d-block" href="{{ '/' | relative_url }}">{{ site.title }}</a>
-    <p class="site-subtitle fst-italic mb-0">{{ site.tagline }}</p>
+    <p class="site-subtitle mb-0">技术笔记与工具手册</p>
+
+    <div class="site-metrics" aria-label="站点统计">
+      <span>{{ visible_posts | size }} 篇笔记</span>
+      <span>{{ site.categories | size }} 个分类</span>
+    </div>
   </header>
   <!-- .profile-wrapper -->
 
   <nav class="flex-column flex-grow-1 w-100 ps-0">
+    <p class="sidebar-section-title">导航</p>
     <ul class="nav">
       <!-- home -->
       <li class="nav-item{% if page.layout == 'home' %}{{ " active" }}{% endif %}">

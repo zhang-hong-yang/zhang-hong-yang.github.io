@@ -5,6 +5,7 @@ date: 2026-06-18 08:00:00 +0800
 categories: [教程, Jekyll]
 tags: [Jekyll, GitHub Pages, Markdown, GitHub Actions, Chirpy]
 pin: true
+mermaid: true
 ---
 
 本文记录如何从零搭建一个个人博客，并用 **Markdown** 写文章、通过 **GitHub Actions** 自动部署到 **GitHub Pages**。整套方案免费、稳定，适合长期维护技术笔记与生活记录。

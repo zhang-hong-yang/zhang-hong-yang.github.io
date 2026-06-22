@@ -16,10 +16,10 @@ timezone: Asia/Shanghai
 
 title: TuTu
 
-tagline: 个人博客
+tagline: 技术笔记与工具手册
 
 description: >- # used by seo meta and the atom feed
-  个人博客，用 Markdown 记录技术与生活。
+  技术笔记与常用工具手册，用 Markdown 记录配置、排错、开发流程和可复用实践。
 
 # Fill in the protocol & hostname for your site.
 # E.g. 'https://username.github.io', note that it does not end with a '/'.

@@ -4,27 +4,88 @@ layout: default
 
 {% include lang.html %}
 
+{% assign visible_posts = site.posts | where_exp: 'post', 'post.hidden != true' %}
+
 <div id="post-list" class="flex-grow-1 px-xl-1">
-  <article class="px-1">
-    {% if content != empty %}
-      <div class="content mb-4">{{ content }}</div>
-    {% endif %}
+  <article class="tech-index px-1">
+    <header class="tech-index-hero mb-4">
+      <p class="tech-index-eyebrow mb-2">TECH NOTES / TOOL MANUALS</p>
+      <h1 class="mb-3">技术笔记与工具手册</h1>
 
-    <h2 class="mb-3">分类目录</h2>
-    {% include category-tree-node.html parent_path='' mode='home' %}
+      {% if content != empty %}
+        <div class="content tech-index-intro mb-0">{{ content }}</div>
+      {% endif %}
 
-    <h2 class="mb-3 mt-4">最近文章</h2>
-    <ul class="ps-4">
-      {% for post in site.posts limit: 10 %}
-        {% unless post.hidden %}
-          <li class="mb-2 d-flex justify-content-between flex-wrap gap-2">
+      <div class="tech-index-stats mt-4" aria-label="站点概览">
+        <div>
+          <strong>{{ visible_posts | size }}</strong>
+          <span>篇笔记</span>
+        </div>
+        <div>
+          <strong>{{ site.categories | size }}</strong>
+          <span>个分类</span>
+        </div>
+        <div>
+          <strong>
+            {% if visible_posts.size > 0 %}
+              {% include datetime.html date=visible_posts.first.date lang=lang %}
+            {% else %}
+              -
+            {% endif %}
+          </strong>
+          <span>最近更新</span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tech-index-actions mb-5" aria-label="常用入口">
+      <a href="{{ '/categories/' | relative_url }}">
+        <i class="fas fa-folder-tree fa-fw"></i>
+        <span>按分类查找</span>
+      </a>
+      <a href="{{ '/tags/' | relative_url }}">
+        <i class="fas fa-tags fa-fw"></i>
+        <span>按标签筛选</span>
+      </a>
+      <a href="{{ '/archives/' | relative_url }}">
+        <i class="fas fa-clock-rotate-left fa-fw"></i>
+        <span>查看归档</span>
+      </a>
+    </nav>
+
+    <section class="tech-index-section mb-5" aria-labelledby="category-index">
+      <div class="tech-index-section-head">
+        <div>
+          <p class="tech-index-label mb-1">INDEX</p>
+          <h2 id="category-index" class="mb-0">分类索引</h2>
+        </div>
+        <a href="{{ '/categories/' | relative_url }}" class="tech-index-more">全部分类</a>
+      </div>
+
+      <div class="tech-index-tree">
+        {% include category-tree-node.html parent_path='' mode='home' %}
+      </div>
+    </section>
+
+    <section class="tech-index-section" aria-labelledby="recent-notes">
+      <div class="tech-index-section-head">
+        <div>
+          <p class="tech-index-label mb-1">RECENT</p>
+          <h2 id="recent-notes" class="mb-0">最近更新</h2>
+        </div>
+        <a href="{{ '/archives/' | relative_url }}" class="tech-index-more">完整归档</a>
+      </div>
+
+      <ol class="tech-index-recent ps-0 mb-0">
+        {% for post in visible_posts limit: 10 %}
+          <li>
             <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
             <span class="text-muted small text-nowrap">
               {% include datetime.html date=post.date lang=lang %}
             </span>
           </li>
-        {% endunless %}
-      {% endfor %}
-    </ul>
+        {% endfor %}
+      </ol>
+    </section>
   </article>
 </div>

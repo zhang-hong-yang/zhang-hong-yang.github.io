@@ -494,3 +494,105 @@ h4 {
     scroll-margin-top: 2rem;
   }
 }
+
+.mermaid {
+  position: relative;
+  cursor: zoom-in;
+
+  &:focus-visible {
+    outline: 2px solid var(--link-color);
+    outline-offset: 0.35rem;
+  }
+}
+
+.mermaid-preview-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--btn-border-color);
+  border-radius: 0.5rem;
+  color: var(--text-muted-color);
+  background: var(--button-bg);
+
+  &:hover {
+    color: var(--link-color);
+    border-color: var(--link-color);
+  }
+}
+
+.mermaid-preview-dialog {
+  width: min(92vw, 1200px);
+  max-width: 92vw;
+  max-height: 88vh;
+  padding: 0;
+  border: 1px solid var(--main-border-color);
+  border-radius: 0.5rem;
+  background: var(--main-bg);
+
+  &::backdrop {
+    background: rgb(0 0 0 / 62%);
+  }
+}
+
+.mermaid-preview-panel {
+  position: relative;
+  max-height: 88vh;
+  padding-top: 3.25rem;
+}
+
+.mermaid-preview-toolbar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--btn-border-color);
+  border-radius: 0.5rem;
+  background: var(--button-bg);
+  box-shadow: rgb(0 0 0 / 8%) 0 0.35rem 1rem;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.35rem;
+    color: var(--text-muted-color);
+    background: transparent;
+
+    &:hover {
+      color: var(--link-color);
+      background: var(--btn-border-color);
+    }
+  }
+}
+
+.mermaid-preview-viewport {
+  overflow: auto;
+  max-height: calc(88vh - 3.25rem);
+  padding: 0 2rem 2rem;
+}
+
+.mermaid-preview-body {
+  --mermaid-preview-scale: 1;
+
+  min-width: max-content;
+
+  svg {
+    display: block;
+    width: calc(100% * var(--mermaid-preview-scale));
+    max-width: none;
+    min-width: calc(min(860px, calc(92vw - 4rem)) * var(--mermaid-preview-scale));
+    height: auto;
+    margin: 0 auto;
+  }
+}
