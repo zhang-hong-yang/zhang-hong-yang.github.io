@@ -5,9 +5,10 @@
   @param {string} mode - 'home' | 'categories'
 {%- endcomment -%}
 
+{% assign parent_path = include.parent_path | default: '' | strip %}
 {% assign path_parts = '' | split: '' %}
-{% unless include.parent_path == '' or include.parent_path == nil %}
-  {% assign path_parts = include.parent_path | split: '|' %}
+{% unless parent_path == '' %}
+  {% assign path_parts = parent_path | split: '|' %}
 {% endunless %}
 {% assign depth = path_parts | size %}
 
@@ -54,7 +55,11 @@
 {% if include.mode == 'home' %}
   {% if depth == 0 %}
     {% for child in child_names %}
-      {% capture child_path %}{{ child }}{% endcapture %}
+      {% if parent_path == '' %}
+        {% assign child_path = child %}
+      {% else %}
+        {% assign child_path = parent_path | append: '|' | append: child %}
+      {% endif %}
 
       <section class="mb-4">
         <h3 class="h5 mb-2">
@@ -70,9 +75,11 @@
     {% if child_names.size > 0 or direct_posts.size > 0 %}
       <ul class="ps-3 mt-1 mb-0">
         {% for child in child_names %}
-          {% capture child_path %}
-            {% if include.parent_path == '' %}{{ child }}{% else %}{{ include.parent_path }}|{{ child }}{% endif %}
-          {% endcapture %}
+          {% if parent_path == '' %}
+            {% assign child_path = child %}
+          {% else %}
+            {% assign child_path = parent_path | append: '|' | append: child %}
+          {% endif %}
 
           <li class="mb-2">
             <i class="far fa-folder fa-fw text-muted"></i>
@@ -95,9 +102,11 @@
   {% if child_names.size > 0 or direct_posts.size > 0 %}
     <ul class="list-group{% if depth > 1 %} ms-3 border-0{% endif %}">
       {% for child in child_names %}
-        {% capture child_path %}
-          {% if include.parent_path == '' %}{{ child }}{% else %}{{ include.parent_path }}|{{ child }}{% endif %}
-        {% endcapture %}
+        {% if parent_path == '' %}
+          {% assign child_path = child %}
+        {% else %}
+          {% assign child_path = parent_path | append: '|' | append: child %}
+        {% endif %}
 
         <li class="list-group-item">
           <i class="far fa-folder fa-fw"></i>
