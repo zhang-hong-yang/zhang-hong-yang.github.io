@@ -89,7 +89,7 @@
   line-height: 1.8;
 }
 
-@media (width <= 576px) {
+@media (max-width: 576px) {
   .about-profile h2 {
     font-size: 1.5rem;
   }
