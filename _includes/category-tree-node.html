@@ -51,6 +51,9 @@
 {% endfor %}
 
 {% assign child_names = child_names | sort %}
+{% assign ordered_posts = direct_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
+{% assign unordered_posts = direct_posts | where_exp: 'post', 'post.order == nil' %}
+{% assign direct_posts = ordered_posts | concat: unordered_posts %}
 
 {% if include.mode == 'home' %}
   {% if depth == 0 %}
@@ -68,7 +71,61 @@
           <a href="{{ _category_url | relative_url }}">{{ child }}</a>
         </h3>
 
-        {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+        {% assign home_child_names = '' | split: '' %}
+        {% assign home_direct_posts = '' | split: '' %}
+
+        {% for post in site.posts %}
+          {% unless post.hidden %}
+            {% if post.categories.size > 0 and post.categories[0] == child %}
+              {% if post.categories.size > 1 %}
+                {% assign home_child_name = post.categories[1] %}
+                {% unless home_child_names contains home_child_name %}
+                  {% assign home_child_names = home_child_names | push: home_child_name %}
+                {% endunless %}
+              {% else %}
+                {% assign home_direct_posts = home_direct_posts | push: post %}
+              {% endif %}
+            {% endif %}
+          {% endunless %}
+        {% endfor %}
+
+        {% assign home_child_names = home_child_names | sort %}
+        {% assign ordered_home_direct_posts = home_direct_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
+        {% assign unordered_home_direct_posts = home_direct_posts | where_exp: 'post', 'post.order == nil' %}
+        {% assign home_direct_posts = ordered_home_direct_posts | concat: unordered_home_direct_posts %}
+
+        {% if home_child_names.size > 0 or home_direct_posts.size > 0 %}
+          <ul class="ps-3 mt-1 mb-0">
+            {% for post in home_direct_posts %}
+              <li>
+                <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+              </li>
+            {% endfor %}
+
+            {% for home_child in home_child_names %}
+              <li class="mb-2">
+                <i class="far fa-folder fa-fw text-muted"></i>
+                {% capture _home_child_url %}/categories/{{ home_child | slugify | url_encode }}/{% endcapture %}
+                <a href="{{ _home_child_url | relative_url }}">{{ home_child }}</a>
+
+                {% assign home_child_posts = site.categories[home_child] | where_exp: 'post', 'post.hidden != true' %}
+                {% assign ordered_home_child_posts = home_child_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
+                {% assign unordered_home_child_posts = home_child_posts | where_exp: 'post', 'post.order == nil' %}
+                {% assign home_child_posts = ordered_home_child_posts | concat: unordered_home_child_posts %}
+
+                {% if home_child_posts.size > 0 %}
+                  <ul class="ps-3 mt-1 mb-0">
+                    {% for post in home_child_posts %}
+                      <li>
+                        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
       </section>
     {% endfor %}
   {% else %}
@@ -95,7 +152,21 @@
             <i class="far fa-folder fa-fw text-muted"></i>
             {% capture _child_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
             <a href="{{ _child_url | relative_url }}">{{ child }}</a>
-            {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+
+            {% assign child_posts = site.categories[child] | where_exp: 'post', 'post.hidden != true' %}
+            {% assign ordered_child_posts = child_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
+            {% assign unordered_child_posts = child_posts | where_exp: 'post', 'post.order == nil' %}
+            {% assign child_posts = ordered_child_posts | concat: unordered_child_posts %}
+
+            {% if child_posts.size > 0 %}
+              <ul class="ps-3 mt-1 mb-0">
+                {% for post in child_posts %}
+                  <li>
+                    <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
           </li>
         {% endfor %}
       </ul>
@@ -128,27 +199,8 @@
           {% capture _child_url %}/categories/{{ child | slugify | url_encode }}/{% endcapture %}
           <a href="{{ _child_url | relative_url }}" class="mx-2">{{ child }}</a>
 
-          {% assign subtree_count = 0 %}
-          {% assign child_path_parts = child_path | split: '|' %}
-          {% assign child_depth = child_path_parts | size %}
-
-          {% for post in site.posts %}
-            {% unless post.hidden %}
-              {% if post.categories.size >= child_depth %}
-                {% assign path_match = true %}
-                {% for part in child_path_parts %}
-                  {% assign idx = forloop.index0 %}
-                  {% if post.categories[idx] != part %}
-                    {% assign path_match = false %}
-                  {% endif %}
-                {% endfor %}
-
-                {% if path_match %}
-                  {% assign subtree_count = subtree_count | plus: 1 %}
-                {% endif %}
-              {% endif %}
-            {% endunless %}
-          {% endfor %}
+          {% assign subtree_posts = site.categories[child] | where_exp: 'post', 'post.hidden != true' %}
+          {% assign subtree_count = subtree_posts | size %}
 
           <span class="text-muted small font-weight-light">
             {{ subtree_count }}
@@ -165,7 +217,20 @@
             {% endif %}
           </span>
 
-          {% include category-tree-node.html parent_path=child_path mode=include.mode %}
+          {% assign ordered_child_posts = subtree_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
+          {% assign unordered_child_posts = subtree_posts | where_exp: 'post', 'post.order == nil' %}
+          {% assign child_posts = ordered_child_posts | concat: unordered_child_posts %}
+
+          {% if child_posts.size > 0 %}
+            <ul class="list-group ms-3 border-0">
+              {% for post in child_posts %}
+                <li class="list-group-item">
+                  <i class="far fa-file fa-fw text-muted"></i>
+                  <a href="{{ post.url | relative_url }}" class="mx-2">{{ post.title }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
