@@ -73,7 +73,17 @@
     {% endfor %}
   {% else %}
     {% if child_names.size > 0 or direct_posts.size > 0 %}
+      {% capture direct_post_items %}
+        {% for post in direct_posts %}
+          <li>
+            <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+          </li>
+        {% endfor %}
+      {% endcapture %}
+
       <ul class="ps-3 mt-1 mb-0">
+        {{ direct_post_items }}
+
         {% for child in child_names %}
           {% if parent_path == '' %}
             {% assign child_path = child %}
@@ -88,19 +98,24 @@
             {% include category-tree-node.html parent_path=child_path mode=include.mode %}
           </li>
         {% endfor %}
-
-        {% for post in direct_posts %}
-          <li>
-            <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
-          </li>
-        {% endfor %}
       </ul>
     {% endif %}
   {% endif %}
 
 {% elsif include.mode == 'categories' %}
   {% if child_names.size > 0 or direct_posts.size > 0 %}
+    {% capture direct_post_items %}
+      {% for post in direct_posts %}
+        <li class="list-group-item">
+          <i class="far fa-file fa-fw text-muted"></i>
+          <a href="{{ post.url | relative_url }}" class="mx-2">{{ post.title }}</a>
+        </li>
+      {% endfor %}
+    {% endcapture %}
+
     <ul class="list-group{% if depth > 1 %} ms-3 border-0{% endif %}">
+      {{ direct_post_items }}
+
       {% for child in child_names %}
         {% if parent_path == '' %}
           {% assign child_path = child %}
@@ -151,13 +166,6 @@
           </span>
 
           {% include category-tree-node.html parent_path=child_path mode=include.mode %}
-        </li>
-      {% endfor %}
-
-      {% for post in direct_posts %}
-        <li class="list-group-item">
-          <i class="far fa-file fa-fw text-muted"></i>
-          <a href="{{ post.url | relative_url }}" class="mx-2">{{ post.title }}</a>
         </li>
       {% endfor %}
     </ul>
