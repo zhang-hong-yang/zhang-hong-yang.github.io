@@ -312,7 +312,39 @@ pin: false
 
 图片可放在仓库内，也可使用图床 URL。
 
-### 3. 发布文章
+### 3. 文章与分类排序
+
+本站的排序规则基于当前仓库模板源码实现，不是 Chirpy 默认能力。相关逻辑在 `_layouts/category.html`、`_layouts/categories.html` 和 `_includes/category-tree-node.html` 中；日常使用时不需要改这些模板，只需要维护文章 front matter 和 `_data/category_order.yml`。
+
+文章排序写在每篇文章的 front matter 里：
+
+```yaml
+order: 10
+```
+
+`order` 只控制同一个分类页、分类树下文章条目的显示顺序。数字越小越靠前；没有配置 `order` 的文章会排在已配置文章之后。
+
+同级分类的排序写在 `_data/category_order.yml`：
+
+```yaml
+教程: 10
+博客: 20
+"教程|KVM": 10
+"教程|Docker": 20
+"教程|Linux 基础": 30
+```
+
+配置规则：
+
+1. 顶级分类直接写分类名，例如 `教程: 10`
+2. 多级分类用完整路径，层级之间用 `|` 连接，例如 `"教程|Docker": 20`
+3. 分类名必须和文章 `categories` 中的文字完全一致
+4. 分类名包含空格或标点时，建议给 key 加英文引号
+5. 未配置的同级分类会排在已配置分类之后，并按名称排序
+
+因为 `|` 被用作层级分隔符，不建议在分类名本身使用 `|`。
+
+### 4. 发布文章
 
 ```bash
 git add _posts/2026-06-18-my-first-post.md

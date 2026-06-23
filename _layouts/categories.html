@@ -24,7 +24,21 @@ layout: page
   {% endunless %}
 {% endfor %}
 
-{% assign top_children = top_children | sort %}
+{% assign top_child_entries = '' | split: '' %}
+{% for child in top_children %}
+  {% assign configured_order = site.data.category_order[child] %}
+  {% assign sort_order = configured_order | default: 999999 | plus: 1000000 %}
+  {% capture top_child_entry %}{{ sort_order }}|||{{ child }}{% endcapture %}
+  {% assign top_child_entries = top_child_entries | push: top_child_entry %}
+{% endfor %}
+
+{% assign top_child_entries = top_child_entries | sort %}
+{% assign top_children = '' | split: '' %}
+{% for top_child_entry in top_child_entries %}
+  {% assign top_child_parts = top_child_entry | split: '|||' %}
+  {% assign top_child_name = top_child_parts | last %}
+  {% assign top_children = top_children | push: top_child_name %}
+{% endfor %}
 
 {% for child in top_children %}
   {% capture child_path %}{{ child }}{% endcapture %}
@@ -59,7 +73,22 @@ layout: page
     {% endunless %}
   {% endfor %}
 
-  {% assign sub_children = sub_children | sort %}
+  {% assign sub_child_entries = '' | split: '' %}
+  {% for sub_child in sub_children %}
+    {% capture sub_child_path %}{{ child_path }}|{{ sub_child }}{% endcapture %}
+    {% assign configured_order = site.data.category_order[sub_child_path] %}
+    {% assign sort_order = configured_order | default: 999999 | plus: 1000000 %}
+    {% capture sub_child_entry %}{{ sort_order }}|||{{ sub_child }}{% endcapture %}
+    {% assign sub_child_entries = sub_child_entries | push: sub_child_entry %}
+  {% endfor %}
+
+  {% assign sub_child_entries = sub_child_entries | sort %}
+  {% assign sub_children = '' | split: '' %}
+  {% for sub_child_entry in sub_child_entries %}
+    {% assign sub_child_parts = sub_child_entry | split: '|||' %}
+    {% assign sub_child_name = sub_child_parts | last %}
+    {% assign sub_children = sub_children | push: sub_child_name %}
+  {% endfor %}
   {% assign sub_children_size = sub_children | size %}
 
   {% assign direct_at_top = 0 %}

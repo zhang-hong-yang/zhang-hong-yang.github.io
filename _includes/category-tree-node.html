@@ -50,7 +50,27 @@
   {% endunless %}
 {% endfor %}
 
-{% assign child_names = child_names | sort %}
+{% assign child_entries = '' | split: '' %}
+{% for child in child_names %}
+  {% if parent_path == '' %}
+    {% assign child_path_for_order = child %}
+  {% else %}
+    {% assign child_path_for_order = parent_path | append: '|' | append: child %}
+  {% endif %}
+
+  {% assign configured_order = site.data.category_order[child_path_for_order] %}
+  {% assign sort_order = configured_order | default: 999999 | plus: 1000000 %}
+  {% capture child_entry %}{{ sort_order }}|||{{ child }}{% endcapture %}
+  {% assign child_entries = child_entries | push: child_entry %}
+{% endfor %}
+
+{% assign child_entries = child_entries | sort %}
+{% assign child_names = '' | split: '' %}
+{% for child_entry in child_entries %}
+  {% assign child_entry_parts = child_entry | split: '|||' %}
+  {% assign child_name = child_entry_parts | last %}
+  {% assign child_names = child_names | push: child_name %}
+{% endfor %}
 {% assign ordered_posts = direct_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
 {% assign unordered_posts = direct_posts | where_exp: 'post', 'post.order == nil' %}
 {% assign direct_posts = ordered_posts | concat: unordered_posts %}
@@ -89,7 +109,22 @@
           {% endunless %}
         {% endfor %}
 
-        {% assign home_child_names = home_child_names | sort %}
+        {% assign home_child_entries = '' | split: '' %}
+        {% for home_child in home_child_names %}
+          {% capture home_child_path_for_order %}{{ child }}|{{ home_child }}{% endcapture %}
+          {% assign configured_order = site.data.category_order[home_child_path_for_order] %}
+          {% assign sort_order = configured_order | default: 999999 | plus: 1000000 %}
+          {% capture home_child_entry %}{{ sort_order }}|||{{ home_child }}{% endcapture %}
+          {% assign home_child_entries = home_child_entries | push: home_child_entry %}
+        {% endfor %}
+
+        {% assign home_child_entries = home_child_entries | sort %}
+        {% assign home_child_names = '' | split: '' %}
+        {% for home_child_entry in home_child_entries %}
+          {% assign home_child_entry_parts = home_child_entry | split: '|||' %}
+          {% assign home_child_name = home_child_entry_parts | last %}
+          {% assign home_child_names = home_child_names | push: home_child_name %}
+        {% endfor %}
         {% assign ordered_home_direct_posts = home_direct_posts | where_exp: 'post', 'post.order' | sort: 'order' %}
         {% assign unordered_home_direct_posts = home_direct_posts | where_exp: 'post', 'post.order == nil' %}
         {% assign home_direct_posts = ordered_home_direct_posts | concat: unordered_home_direct_posts %}

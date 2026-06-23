@@ -1,0 +1,16 @@
+# Category display order.
+#
+# Keys are category paths joined by `|` and must match the post front matter
+# text exactly. Quote keys that contain spaces or punctuation. Avoid `|` in
+# category names because this file uses it as the path separator.
+#
+# Examples:
+# 教程: 10
+# 博客: 20
+# "教程|Docker": 10
+# "教程|Linux 基础": 20
+教程: 10
+博客: 20
+"教程|Jekyll": 1
+"教程|KVM": 2
+"教程|Docker": 3
