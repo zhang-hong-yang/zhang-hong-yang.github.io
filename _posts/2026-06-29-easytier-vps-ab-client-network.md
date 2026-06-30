@@ -3,7 +3,7 @@ title: EasyTier 异地组网：VPS 服务端 + A/B 客户端互通部署
 description: 使用 EasyTier 搭建 VPS 中继节点，让两台 NAT 后的设备互通，并通过 proxy-networks 发布 B 设备后方内网，实现远程访问家庭/机房服务。
 date: 2026-06-29 10:00:00 +0800
 categories: [教程, 网络]
-tags: [EasyTier, 异地组网, VPS, P2P, 内网穿透, systemd]
+tags: [EasyTier, 异地组网, VPS, P2P, UDP, 内网穿透, systemd]
 order: 10
 ---
 
@@ -15,6 +15,8 @@ order: 10
 - A 设备（如 MacBook）与 B 设备（如 PVE）通过 EasyTier 虚拟 IP 互通
 - B 设备发布 `192.168.55.0/24` 内网，让 A 设备和 VPS 直接访问 B 后方的服务
 - 理解 P2P 与中继模式的差异，以及常见排障手段
+- 在 TCP 中继偏慢时改用 UDP 协议优化体验
+- PVE 同时连接多台 VPS，在 PVE 上用 `--rpc-portal` 分别管理各实例
 
 ## 示例架构
 
@@ -398,6 +400,141 @@ A ↔ B relay 延迟约：405 ms
 
 ---
 
+## 改用 UDP 降低延迟
+
+如果 `easytier-cli peer` 里显示 TCP 中继延迟很高（例如 400 ms 以上），但本机 `ping` VPS 公网 IP 的 ICMP 延迟其实没那么夸张，可以改用 **UDP** 作为 EasyTier 的传输协议。UDP 在跨运营商、高丢包或 TCP 拥塞控制过于保守的场景下，往往能获得更低的感知延迟。
+
+> 同一网络内的所有节点必须使用相同协议。服务端从 TCP 切到 UDP 后，所有客户端的 `--peers` 也要同步改为 `udp://...`。
+
+### VPS 服务端
+
+将 `--listeners` 从 TCP 改为 UDP：
+
+```bash
+/opt/easytier/easytier-core \
+  --ipv4 10.66.0.1 \
+  --network-name "你的ET_NAME" \
+  --network-secret "你的ET_SECRET" \
+  --listeners udp://0.0.0.0:11010 \
+  --private-mode true \
+  --relay-network-whitelist "你的ET_NAME" \
+  --mtu 1280 \
+  --console-log-level info
+```
+
+防火墙同步放行 UDP 11010：
+
+```bash
+iptables -I INPUT -p udp --dport 11010 -j ACCEPT
+```
+
+云厂商安全组中放行 `UDP 11010`。
+
+### 客户端
+
+`--peers` 改为 UDP 地址：
+
+```bash
+/opt/easytier/easytier-core \
+  --ipv4 10.66.0.2 \
+  --network-name "你的ET_NAME" \
+  --network-secret "你的ET_SECRET" \
+  --peers udp://38.A.B.C:11010 \
+  --no-listener \
+  --private-mode true \
+  --mtu 1280 \
+  --console-log-level info
+```
+
+切换后重新执行 `easytier-cli peer`，`tunnel` 列应显示 `udp`，`lat(ms)` 通常会有明显下降。
+
+---
+
+## PVE 同时连接多台 VPS
+
+有时需要在**同一台 PVE** 上同时接入多个 EasyTier 网络——例如 PVE 既连 VPS1 给家里人用，又连 VPS2 给另一拨远程客户端用，或一条 TCP、一条 UDP 做备用入口。做法是在 PVE 上运行**多个 `easytier-core` 进程**，每个进程 `--peers` 指向不同的 VPS，各自加入独立的 EasyTier 网络。
+
+`--rpc-portal` 是 **PVE 本机管理端口**，与 VPS 无关。每个实例绑定不同的 RPC 地址后，在 PVE 上就能用 `easytier-cli --rpc-portal` 分别查看各实例的节点和路由，互不干扰。
+
+```text
+                    ┌─ VPS1（38.A.B.C:11010）─ 网络 mylan-home
+PVE 实例 1 ─────────┤   虚拟 IP：10.66.0.10
+(rpc-portal :15888) └─ 发布 192.168.55.0/24
+
+                    ┌─ VPS2（38.B.B.B:51010）─ 网络 mylan
+PVE 实例 2 ─────────┤   虚拟 IP：10.77.0.10
+(rpc-portal :15889) └─ 发布 192.168.55.0/24
+```
+
+关键点：
+
+- 每个进程使用不同的 `--ipv4` 和 `--network-name` / `--network-secret`
+- 每个进程 `--peers` 指向各自的 VPS
+- 每个进程在 PVE 上指定独立的 `--rpc-portal`（如 `15888`、`15889`）
+- 多实例时建议加 `--bind-device true`
+
+### 示例：PVE 上的两个实例
+
+**实例 1**——PVE 连接 VPS1（TCP，对应前文 B 设备主网络）：
+
+```bash
+/opt/easytier/easytier-core \
+  --ipv4 10.66.0.10 \
+  --network-name "mylan-home" \
+  --network-secret "密钥1" \
+  --peers tcp://38.A.B.C:11010 \
+  --bind-device true \
+  --no-listener \
+  --private-mode true \
+  --proxy-networks 192.168.55.0/24 \
+  --mtu 1280 \
+  --rpc-portal 127.0.0.1:15888 \
+  --console-log-level info
+```
+
+**实例 2**——PVE 连接 VPS2（UDP，独立网络）：
+
+```bash
+/opt/easytier/easytier-core \
+  --ipv4 10.77.0.10 \
+  --network-name "mylan" \
+  --network-secret "密钥2" \
+  --peers udp://38.B.B.B:51010 \
+  --bind-device true \
+  --no-listener \
+  --private-mode true \
+  --proxy-networks 192.168.55.0/24 \
+  --mtu 1280 \
+  --rpc-portal 127.0.0.1:15889 \
+  --console-log-level info
+```
+
+| 参数 | 说明 |
+|---|---|
+| `--rpc-portal` | 在 PVE 本机为每个实例绑定独立管理端口 |
+| `--bind-device true` | 多实例时绑定独立 TUN 设备，避免网卡冲突 |
+| `--proxy-networks` | 两个实例可各自向对应 VPS 所在网络发布同一内网段 |
+
+远程 A 设备只需 `--peers` 连其中一台 VPS，即可经对应网络访问 PVE 后方的 `192.168.55.0/24`。两套网络相互独立，密钥、虚拟 IP 段、VPS 地址均可不同。
+
+### 在 PVE 上分别查看各实例
+
+```bash
+# 查看连 VPS1 的实例
+/opt/easytier/easytier-cli --rpc-portal 127.0.0.1:15888 peer
+/opt/easytier/easytier-cli --rpc-portal 127.0.0.1:15888 route
+
+# 查看连 VPS2 的实例
+/opt/easytier/easytier-cli --rpc-portal 127.0.0.1:15889 peer
+/opt/easytier/easytier-cli --rpc-portal 127.0.0.1:15889 route
+```
+
+不设 `--rpc-portal` 时，`easytier-cli` 默认连 PVE 上第一个实例；多实例场景下务必通过 `--rpc-portal` 指定要查哪一个。
+
+> 若远程客户端（如 MacBook）**同时**加入这两个网络，且两边都发布了相同的 `192.168.55.0/24`，客户端侧可能发生路由冲突。通常远程端只连其中一台 VPS 即可；PVE 侧双实例并存没有问题。
+
+---
+
 ## 是否需要 NAT 或静态路由
 
 如果 B 设备直接运行 EasyTier 且 `--proxy-networks 192.168.55.0/24` 已生效，通常**不需要**额外 NAT。实际验证中，VPS 已能直接访问 `192.168.55.104:9000`，说明 EasyTier 已完成内网段代理。
@@ -524,3 +661,5 @@ journalctl -u easytier-client -n 100 --no-pager
 4. **公网暴露**：若直接暴露 `11010`，至少配置 `--private-mode true` 和 `--relay-network-whitelist`。
 5. **隐藏端口**：若不想暴露 `11010`，让 VPS EasyTier 监听 `127.0.0.1:11010`，再通过 V2Ray/Xray tunnel 转发。
 6. **连接模式**：`peer` 中 `relay(2)` 表示走 VPS 中继，`p2p` 表示点对点连接。
+7. **协议一致**：TCP 与 UDP 不能混用；切换协议后服务端、客户端和防火墙规则需同步修改。
+8. **PVE 多实例**：PVE 连多台 VPS 时，每个 `easytier-core` 进程的 `--ipv4` 和 `--rpc-portal` 必须唯一；`rpc-portal` 仅用于 PVE 本机管理，远程客户端无需配置。
