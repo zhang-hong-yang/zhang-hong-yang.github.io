@@ -3,7 +3,7 @@ title: Nginx 常见问题排查：403 Forbidden 与 SELinux
 description: 分析 Nginx 访问静态页面返回 403 的常见原因，重点讲解 SELinux 拦截自定义目录的排查思路与正式修复方案，含反向代理相关配置。
 date: 2026-07-01 11:00:00 +0800
 categories: [教程, Nginx]
-tags: [Nginx, SELinux, 403, Rocky Linux, 反向代理]
+tags: [Nginx, SELinux, "403", Rocky Linux, 反向代理]
 order: 20
 ---
 
