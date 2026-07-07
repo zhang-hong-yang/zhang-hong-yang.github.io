@@ -317,6 +317,8 @@ systemctl status easytier-client --no-pager
 | 10.66.0.1/24  | vps                    | Local    | -       | -      |
 | 10.66.0.2/24  | macbook                | relay(2) | 405.00  |        |
 | 10.66.0.10/24 | pve                    | p2p      | 176.00  | tcp    |
+
+> **复盘说明**：上表中 MacBook 的 `405 ms` 延迟，以及下文「relay 延迟约 405 ms」的示例，后来排查发现并非 EasyTier 中继或 TCP 协议本身的问题，而是 PVE 侧 **OpenClash 把到 VPS 公网 IP 的 TCP/UDP 流量透明代理到了境外节点**；`ping` VPS 公网 IP 的 ICMP 不走代理，所以看起来很快。修复直连规则后延迟恢复正常。详见 [EasyTier 虚拟 IP 延迟异常排查](/posts/easytier-latency-openclash-troubleshooting/)。
 ```
 
 | 字段 | 说明 |
@@ -373,15 +375,9 @@ EasyTier 默认会尝试 P2P。
 
 ### P2P 失败时
 
-路径为 `A 设备 ↔ VPS ↔ B 设备 ↔ B 后方内网`。例如：
+路径为 `A 设备 ↔ VPS ↔ B 设备 ↔ B 后方内网`。理论上延迟大约等于两端到 VPS 的延迟之和。
 
-```text
-B ↔ VPS：175 ms
-VPS ↔ A：236 ms
-A ↔ B relay 延迟约：405 ms
-```
-
-这就是 relay 模式下延迟偏高的原因。
+> 文中曾记录 `A ↔ B relay 延迟约 405 ms` 的示例数据。事后用 iperf3 在 VPS 侧核对连接来源 IP，确认该流量实际经过了 OpenClash 代理节点，**不是**典型的 VPS 中继延迟。若你遇到「`ping` VPS 公网 IP 很快、但 EasyTier 虚拟 IP 或 peer 延迟 400ms+」的情况，应优先排查透明代理，而非先改 UDP 或关 P2P。参见 [延迟异常排查](/posts/easytier-latency-openclash-troubleshooting/)。
 
 ### 如何确认连接模式
 
@@ -402,7 +398,7 @@ A ↔ B relay 延迟约：405 ms
 
 ## 改用 UDP 降低延迟
 
-如果 `easytier-cli peer` 里显示 TCP 中继延迟很高（例如 400 ms 以上），但本机 `ping` VPS 公网 IP 的 ICMP 延迟其实没那么夸张，可以改用 **UDP** 作为 EasyTier 的传输协议。UDP 在跨运营商、高丢包或 TCP 拥塞控制过于保守的场景下，往往能获得更低的感知延迟。
+如果 `easytier-cli peer` 里显示延迟很高（例如 400 ms 以上），但本机 `ping` VPS 公网 IP 的 ICMP 延迟其实没那么夸张，**先排查是否被 OpenClash 等透明代理劫持**（在 VPS 上用 iperf3 看连接来源是否为代理节点 IP），再考虑协议优化。确认流量已直连后，若 TCP 仍偏慢，可以改用 **UDP** 作为 EasyTier 的传输协议——UDP 在跨运营商、高丢包或 TCP 拥塞控制过于保守的场景下，往往能获得更低的感知延迟。
 
 > 同一网络内的所有节点必须使用相同协议。服务端从 TCP 切到 UDP 后，所有客户端的 `--peers` 也要同步改为 `udp://...`。
 
